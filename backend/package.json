@@ -9,6 +9,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
     "@fastify/postgres": "^6.0.2",
     "fastify": "^5.8.4",
@@ -16,8 +17,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "ts-node": "^10.9.2",
-    "tsc-watch": "^7.2.0",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }
 }
