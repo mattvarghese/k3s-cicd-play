@@ -1,0 +1,48 @@
+name: Backend Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # This spins up the DB sidecar for the tests
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: shopping_db
+        ports:
+          - 5432:5432
+        # Wait until postgres is healthy
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./backend
+
+      - name: Initialize Database Schema
+        run: |
+          PGPASSWORD=password psql -h localhost -U user -d shopping_db -f database/init.sql
+        
+      - name: Run Tests
+        run: npm test
+        working-directory: ./backend
+        env:
+          # Tell the app to talk to the CI database
+          DATABASE_URL: postgres://user:password@localhost:5432/shopping_db
