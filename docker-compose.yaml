@@ -13,5 +13,16 @@ services:
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
 
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # Note the host change: inside the docker network, the db service is found at 'db'
+      DATABASE_URL: postgres://user:password@db:5432/shopping_db
+    depends_on:
+      - db
+
 volumes:
   postgres_data:

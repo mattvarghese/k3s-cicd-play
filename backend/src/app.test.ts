@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import supertest from 'supertest';
-import { buildApp } from './app.js'; // We haven't made this yet!
+import { buildApp } from './app.js';
 
 describe('Shopping List API', () => {
   let app: any;
