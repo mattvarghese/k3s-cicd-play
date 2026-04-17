@@ -1,0 +1,21 @@
+# Dependency folders - DO NOT copy these (Docker runs its own npm install)
+node_modules
+npm-debug.log
+
+# Build artifacts
+dist
+build
+
+# Secrets and environment config
+.env
+.env.local
+.aws
+.ssh
+
+# Version control
+.git
+.gitignore
+
+# OS-specific files
+.DS_Store
+thumbs.db
