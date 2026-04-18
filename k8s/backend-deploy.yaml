@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopping-backend
+  namespace: k3s-cicd-play
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shopping-backend
+  template:
+    metadata:
+      labels:
+        app: shopping-backend
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-key
+      containers:
+        - name: backend
+          image: mattvarghesedocker/k3s-cicd-play-backend:v1
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              # We use the Service Name (shopping-db) and the Cluster DB Name (shopping_list)
+              value: "postgres://postgres:password@shopping-db:5432/shopping_list"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: k3s-cicd-play
+# spec:
+#   selector:
+#    app: shopping-backend
+#   ports:
+#     - protocol: TCP
+#       port: 80
+#       targetPort: 3000
+#   type: ClusterIP   # This only gives a load-balanced cluster IP
+spec:
+  type: NodePort  # This exposes the service on the Host IP
+  selector:
+    app: shopping-backend
+  ports:
+    - protocol: TCP
+      port: 80         # Internal cluster port
+      targetPort: 3000 # The port your Node.js app is listening on
+      nodePort: 30000  # The port on your actual laptop/computer (Not valid for ClusterIP)
+
+# Note, we probably don't want the backend directly exposed for a production application
+# But for diagnostics when learning, this is useful

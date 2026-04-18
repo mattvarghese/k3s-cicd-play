@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: k3s-cicd-play
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS shopping_items (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        item_name VARCHAR(255) NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    INSERT INTO shopping_items (username, item_name, quantity) 
+    VALUES ('matt', 'Gallon of Milk', 1), ('matt', 'Eggs', 12);
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: k3s-cicd-play
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopping-db
+  namespace: k3s-cicd-play
+spec:
+  strategy:
+    type: Recreate # Ensures only one pod tries to write to the PVC at a time
+  selector:
+    matchLabels:
+      app: shopping-db
+  template:
+    metadata:
+      labels:
+        app: shopping-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "password"
+            - name: POSTGRES_DB
+              value: "shopping_list"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgredb
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d # This is where Postgres looks for SQL
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+        - name: init-script
+          configMap:
+            name: postgres-init-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopping-db
+  namespace: k3s-cicd-play
+spec:
+  selector:
+    app: shopping-db
+  ports:
+    - port: 5432
+      targetPort: 5432
