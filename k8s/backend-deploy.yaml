@@ -17,7 +17,7 @@ spec:
         - name: dockerhub-key
       containers:
         - name: backend
-          image: mattvarghesedocker/k3s-cicd-play-backend:v2   # was v1, changed to v2
+          image: mattvarghesedocker/k3s-cicd-play-backend:v3   # was v1, changed to v2, then v3 for delete API
           ports:
             - containerPort: 3000
           env:
