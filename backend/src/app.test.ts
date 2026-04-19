@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import supertest from 'supertest';
 import { buildApp } from './app.js';
 
@@ -63,6 +63,11 @@ describe('Shopping List API', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty('error', 'Item not found');
+  });
+
+  // ... inside describe ...
+  afterAll(async () => {
+    await app.close();
   });
 
 });
