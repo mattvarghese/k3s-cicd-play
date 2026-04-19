@@ -354,6 +354,125 @@ Fixing DNS
         FallbackDNS=9.9.9.9
     sudo systemctl restart systemd-resolved
 
+
+For whatever reason, if you restart the computer and reopen freelens
+IT again shows Metrics are not available due to missing or invalid Prometheus configuration
+To fix you had to reinstall Promethus
+    # Uninstall the broken release
+    helm uninstall prometheus -n monitoring
+    # (Optional) Delete the namespace to ensure a fresh start
+    kubectl delete namespace monitoring
+    helm install prometheus prometheus-community/kube-prometheus-stack \
+      --namespace monitoring \
+      --create-namespace \
+      --timeout 15m
+Note: Issue seems to be this Freelens bug: https://github.com/freelensapp/freelens/issues/1524
+
+
+Now onto frontend:
+cd frontend/
+npm create vite@latest . -- --template react-ts
+When it asks "Install with npm and start now?" say yes
+CTRL-D to exit out (or you could keep it running)
+
+If you're using VSCode, make sure to install the Tailwind CSS extension
+- Tailwind CSS Intellisense: bradlc.vscode-tailwindcss
+I also like to at least have this in the VSCode settings.json
+(CTRL+SHIFT+P, search for User Settings (JSON))
+        {
+            "npm.packageManager": "npm",
+            "npm.scriptRunner": "npm",
+            "editor.wordWrap": "on",
+            "editor.wrappingIndent": "indent",
+            "editor.folding": true,
+            "editor.showFoldingControls": "always",
+            "editor.formatOnSave": true,
+            "telemetry.editStats.enabled": false,
+            "telemetry.feedback.enabled": false,
+            "extensions.ignoreRecommendations": true,
+        }
+
+Install tailwind CSS using these steps:
+https://tailwindcss.com/docs/installation/using-vite
+
+npm install tailwindcss @tailwindcss/vite
+
+Update vite.config.ts to
+    import { defineConfig } from 'vite'
+    import react from '@vitejs/plugin-react'
+    import tailwindcss from '@tailwindcss/vite'
+
+    export default defineConfig({
+      plugins: [
+        react(),
+        tailwindcss(),
+      ],
+      server: {
+        port: 3000, // Keep it consistent for your CORS settings
+      }
+    })
+
+Delete src/App.css 
+Change src/index.css to just be
+    @import "tailwindcss";
+
+Create frontend/.evn with content
+    # Explicitly targeting the API gateway of your Fastify server
+    # For npm run dev, not for k3s
+    VITE_API_URL=http://localhost:3000/api
+
+Change src/frontend/App.tsx to code to show and add items (no delete yet)
+
+You can also delete 
+- files public/ except favicon (unless you replace favicon with your own)
+- src/assets folder
+
+We now try to run this
+# in the root folder, bring up the database
+docker compose up db -d
+# In the backend folder, bring up backend
+npm run dev
+curl http://localhost:3000/api/items # should return initial items
+# In frontend folder
+npm run dev
+# Then navigate to http://localhost:3001 or whatever address shown
+
+You will see items not loading due to CORS. 
+To fix this, stop the backend, and in the backend folder
+npm install @fastify/cors
+
+Then in backend/src/app.ts, add this import
+import cors from '@fastify/cors';
+
+and add this code just after app is defined
+  // 1. Regular CORS registration
+  await app.register(cors, {
+    origin: (origin, cb) => {
+      if (!origin) {
+        cb(null, true); // Allow non-browser requests (like curl or postman)
+        return;
+      }
+
+      try {
+        const { hostname } = new URL(origin);
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+          cb(null, true);
+        } else {
+          cb(new Error("CORS: Origin not allowed"), false);
+        }
+      } catch {
+        cb(new Error("CORS: Invalid Origin"), false);
+      }
+    },
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  });
+
+Now, everything works locally. Next, we must containerize the frontend and deploy on K3S
+
+
+
 ====================== Work in progress ==============================
 
 To bring down the k3s deployment
