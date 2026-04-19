@@ -66,5 +66,25 @@ export async function buildApp() {
     }
   });
 
+  // 5. The DELETE Route: Remove an item by ID
+  app.delete('/api/items/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const query = 'DELETE FROM shopping_items WHERE id = $1 RETURNING id';
+
+    try {
+      const { rows } = await app.pg.query(query, [id]);
+
+      if (rows.length === 0) {
+        return reply.code(404).send({ error: 'Item not found' });
+      }
+
+      return { message: 'Item deleted successfully', id: rows[0].id };
+    } catch (err) {
+      app.log.error(err);
+      return reply.code(500).send({ error: 'Failed to delete item' });
+    }
+  });
+
   return app;
 }
