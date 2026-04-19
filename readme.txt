@@ -470,8 +470,76 @@ and add this code just after app is defined
   });
 
 Now, everything works locally. Next, we must containerize the frontend and deploy on K3S
+We add the following files in frontend
+- Dockerfile
+- .dockerignore
+- nginx.conf    - this is necessary to forward API requests to backend (what vite does for npm run dev)
+Then add frontend section under services in root docker-compose.yaml
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3001:80" # Maps Nginx port 80 to your familiar 3001
+    depends_on:
+      - backend
+
+Now to run this via local docker, in the root folder
+1. bring down the db instance
+docker compose down [-v]
+2. Bring up everything forcing build
+docker compose up --build -d
+3. Navigate to http://localhost:3001 and see it working
 
 
+SIDE note, to see logs
+$ docker compose logs -f <service-name>
+
+
+However, we have a problem. The nginx.conf forwards to http://backend:3000
+Which only works when we do
+docker compose up --build -d
+It won't work with k3s, as the cluster has backend at http://backend-service:80
+
+To fix this, we're going to change k3s to use http://backend-service:3000
+and nginx.conf also to use: http://backend-service:80
+First, Update nginx.conf to use http://backend-service:80
+Then, update this line in backend-deploy.yaml to use port 3000
+      port: 80         # Internal cluster port
+
+Now, since we updated the backend's docker image, we need to push it to docker hub
+We will tag it as v2
+    docker tag k3s-cicd-play-backend mattvarghesedocker/k3s-cicd-play-backend:v2
+    docker push mattvarghesedocker/k3s-cicd-play-backend:v2
+Note, we're not asked for password again, as we did docker login
+
+Now we need to redeploy k3s with the new v2 image
+Update this line in k8s/backend-deploy.yaml
+    image: mattvarghesedocker/k3s-cicd-play-backend:v2   # was v1, changed to v2
+
+Then redeploy with
+$ kubectl apply -f k8s/backend-deploy.yaml --namespace k3s-cicd-play
+
+SO now, the final step is to tag and push the frontend docker image, make k8s/frontend-deploy.yaml and deploy it?
+    # If image was already built
+    docker tag k3s-cicd-play-frontend mattvarghesedocker/k3s-cicd-play-frontend:v1
+    OR
+    # Build the image locally (using the Dockerfile we made earlier)
+    docker build -t mattvarghesedocker/k3s-cicd-play-frontend:v1 ./frontend
+
+    # Push to Docker Hub
+    docker push mattvarghesedocker/k3s-cicd-play-frontend:v1
+    
+Create frontend-deploy.yaml and then apply it
+$ kubectl apply -f k8s/frontend-deploy.yaml --namespace k3s-cicd-play
+
+Now, navigate to http://localhost:30001 to see the app
+
+When the app requests http://localhost:30001/api/items,
+it first hits frontend-deploy.yaml's frontend-service which forwards it to self's target port 80
+Self's target port 80 is handled by nginx with config frontend/nginx.conf
+which forwards the request to http://backend-service:3000
+http://backend-service:3000 is defined in backend-deploy.yam
+in backend-service, where we changed port from port:80 to port:3000
 
 ====================== Work in progress ==============================
 
