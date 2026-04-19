@@ -13,7 +13,7 @@ services:
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
 
-  backend:
+  backend-service:
     build: ./backend
     restart: always
     ports:
@@ -23,6 +23,14 @@ services:
       DATABASE_URL: postgres://user:password@db:5432/shopping_db
     depends_on:
       - db
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3001:80" # Maps Nginx port 80 to your familiar 3001
+    depends_on:
+      - backend-service
 
 volumes:
   postgres_data:

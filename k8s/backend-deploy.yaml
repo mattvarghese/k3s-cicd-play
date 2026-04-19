@@ -46,7 +46,7 @@ spec:
     app: shopping-backend
   ports:
     - protocol: TCP
-      port: 80         # Internal cluster port
+      port: 3000       # Internal cluster port (was port 80)
       targetPort: 3000 # The port your Node.js app is listening on
       nodePort: 30000  # The port on your actual laptop/computer (Not valid for ClusterIP)
 
