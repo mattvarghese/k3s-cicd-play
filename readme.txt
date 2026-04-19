@@ -541,7 +541,86 @@ which forwards the request to http://backend-service:3000
 http://backend-service:3000 is defined in backend-deploy.yam
 in backend-service, where we changed port from port:80 to port:3000
 
-====================== Work in progress ==============================
+=============================================================================
+NOW we haave an app which allows us to add items, but not delete them
+=============================================================================
+
+To bring down the k3s deployment
+# Bring down the backend (pods, deployment, and service)
+kubectl delete -f k8s/backend-deploy.yaml -n k3s-cicd-play
+# Bring down the database (configmap, deployment, service, and PVC)
+kubectl delete -f k8s/db-deploy.yaml -n k3s-cicd-play
+
+=============================================================================
+Now, we'll add delete item capability
+=============================================================================
+
+Now we should add a delete button
+For this, first, we should add the DELETE route in backend/app.ts
+  // 5. The DELETE Route: Remove an item by ID
+  app.delete('/api/items/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const query = 'DELETE FROM shopping_items WHERE id = $1 RETURNING id';
+
+    try {
+      const { rows } = await app.pg.query(query, [id]);
+
+      if (rows.length === 0) {
+        return reply.code(404).send({ error: 'Item not found' });
+      }
+
+      return { message: 'Item deleted successfully', id: rows[0].id };
+    } catch (err) {
+      app.log.error(err);
+      return reply.code(500).send({ error: 'Failed to delete item' });
+    }
+  });
+
+Also add tests for delete, and push to github
+
+Test local docker
+    docker compose up -d --build
+    # Go to http://localhost:3001 and add item so there is item 3
+    curl -X DELETE http://localhost:3000/api/items/3
+    # refresh browser to see item 3 deleted
+
+Now that we have a new backend, we tag it as v3, push to docker hub, and redeploy
+    docker build -t mattvarghesedocker/k3s-cicd-play-backend:v3 ./backend
+    docker push mattvarghesedocker/k3s-cicd-play-backend:v3
+    # Make sure k8s/backend-deploy.yaml is updated to reference v3
+    kubectl apply -f k8s/backend-deploy.yaml -n k3s-cicd-play
+
+Now similarly as with docker we can add item and delete it with the k3s deployment
+    # Go to http://localhost:30001 and add item so there is item 3
+    curl -X DELETE http://localhost:30000/api/items/3
+    # refresh browser to see item 3 deleted
+
+Next, update the frontend/src/App.tsx to support deletion
+Then test locally
+    docker compose down -v   # Bring any running docker instances down
+    docker compose up db -d
+Then in both frontend/ and backend/ run npm run dev
+go to http://localhost:3001 and verify that you can now add and delete
+
+Then test using docker
+    docker compose down -v
+    docker compose up -d --build
+go to http://localhost:3001 and verify that you can now add and delete
+
+Now, tag and push frontend docker image as v2
+    docker build -t mattvarghesedocker/k3s-cicd-play-frontend:v2 ./frontend
+    docker push mattvarghesedocker/k3s-cicd-play-frontend:v2
+
+Update k8s/frontend-deploy.yaml to use v2 of frontend, and deploy
+    kubectl apply -f k8s/frontend-deploy.yaml -n k3s-cicd-play
+    
+One other note, we can have tags be part of the docker-compose.yaml 
+Updated codebase to do that as well
+
+=============================================================================
+Now we're all done - we won't bother with edit item, as you can delete and add
+=============================================================================
 
 To bring down the k3s deployment
 # Bring down the backend (pods, deployment, and service)

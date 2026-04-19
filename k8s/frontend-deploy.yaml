@@ -4,7 +4,7 @@ metadata:
   name: shopping-frontend
   namespace: k3s-cicd-play
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: shopping-frontend
@@ -17,7 +17,7 @@ spec:
         - name: dockerhub-key
       containers:
         - name: frontend
-          image: mattvarghesedocker/k3s-cicd-play-frontend:v1
+          image: mattvarghesedocker/k3s-cicd-play-frontend:v2   # v1 doesn't have DELETE support
           ports:
             - containerPort: 80 # Nginx listens here
 ---

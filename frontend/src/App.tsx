@@ -59,6 +59,23 @@ function App() {
     }
   };
 
+  const deleteItem = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/items/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        // Optimistic UI update: filter out the deleted item immediately
+        setItems(items.filter(item => item.id !== id));
+      } else {
+        console.error('Failed to delete item');
+      }
+    } catch (err) {
+      console.error('Error deleting item:', err);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
   }, []);
@@ -111,7 +128,7 @@ function App() {
             items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors"
+                className="group flex items-center justify-between rounded-xl bg-white p-4 shadow-sm border border-slate-100 hover:border-red-200 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 font-bold text-indigo-600">
@@ -119,12 +136,31 @@ function App() {
                   </span>
                   <span className="font-medium text-slate-700">{item.item_name}</span>
                 </div>
-                <div className="text-xs text-slate-400 uppercase tracking-widest font-bold">
-                  {item.username}
+
+                <div className="flex items-center gap-4">
+                  <div className="text-xs text-slate-400 uppercase tracking-widest font-bold">
+                    {item.username}
+                  </div>
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all active:scale-90"
+                    title="Delete item"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      {/* Note: Standard SVG path for a trash can or X */}
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
-            ))
-          )}
+            )))}
         </div>
       </div>
     </div>
