@@ -9,3 +9,10 @@ CREATE TABLE IF NOT EXISTS shopping_items (
 -- Seed data for initial testing
 INSERT INTO shopping_items (username, item_name, quantity) 
 VALUES ('matt', 'Gallon of Milk', 1), ('matt', 'Eggs', 12);
+
+-- NOTE: shopping_db database is created by 
+--       POSTGRES_DB: shopping_db   in docker-compose.yaml and by
+--       - name: POSTGRES_DB \ value: "shopping_db"   in k8s/db-deploy.yaml
+
+-- keycloak_db is used by the keycloak container
+CREATE DATABASE keycloak_db;

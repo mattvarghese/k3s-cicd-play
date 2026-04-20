@@ -12,6 +12,11 @@ services:
       # This automatically runs our SQL on startup
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d shopping_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend-service:
     # Adding the specific tag here
@@ -23,8 +28,15 @@ services:
     environment:
       # Note the host change: inside the docker network, the db service is found at 'db'
       DATABASE_URL: postgres://user:password@db:5432/shopping_db
+      # The 'Issuer' that must match the token's 'iss' claim
+      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/shopping-realm
+      # The physical address the backend uses to talk to Keycloak
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
 
   frontend:
     # Adding the specific tag here
@@ -35,6 +47,33 @@ services:
       - "3001:80" # Maps Nginx port 80 to your familiar 3001
     depends_on:
       - backend-service
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak_db
+      KC_DB_USERNAME: user
+      KC_DB_PASSWORD: password
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # This checks if the port 8080 is accepting connections
+      test: ["CMD-SHELL", "cat < /dev/null > /dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s # Gives Java time to warm up before failing
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

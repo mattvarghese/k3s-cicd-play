@@ -628,7 +628,9 @@ Now we're all done - we won't bother with edit item, as you can delete and add
 =============================================================================
 
 
+=============================================================================
 Phase 2: switching to kubernetes using Kustomize and consolidating database init.sql etc
+=============================================================================
 
 Side note. We used shopping_db for local and docker, but shopping_list for k3s database name
     $ grep -r "shopping_list" *
@@ -651,4 +653,37 @@ OR
 
 And in the kustomize framework, you can bring down the k3s deployment with
     kubectl delete -k .
+
+
+
+=============================================================================
+Phase 3: users and authentication with keycloak
+=============================================================================
+
+Keycloak is an opensource Identity Management provider which we can run in a
+docker container, and have it connect to our same backend database.
+The frontend will redirect to keycloak for user signup / user signin.
+It will then get an access token and a refresh token which it will use to
+authorize backend requests. Backend will verify signature of token with keycloak.
+
+At the bottom of database/init.sql, add a line to create keycloak_db
+The shopping_db database is created through either the docker-compose.yaml or the
+db-deploy.yaml. However, we must explicitly create the keycloak_db
+
+Add keycloak section to the docker-compose.yaml under services
+Add health check to database also
+Make backend check health of db and keycloak
+Add keycloak related environment variables to the backend-service
+
+At this point we can run
+    docker compose down -v   # bring down any running containers, cleanup volumes
+    docker compose up -d --build
+
+Navigate to http://localhost:8080/health/ready to check health
+Navigate to http://localhost:8080/ and log in as admin/admin to configure
+
+[-- git commit "Keycloak added to docker-compose.yaml" --]
+
+
+
 
