@@ -28,8 +28,10 @@ services:
     environment:
       # Note the host change: inside the docker network, the db service is found at 'db'
       DATABASE_URL: postgres://user:password@db:5432/shopping_db
-      # The 'Issuer' that must match the token's 'iss' claim
+      # This is the "iss" claim inside the token (must be localhost for the browser)
       KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/shopping-realm
+      # ADD THIS: The actual internal path to the certs
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/shopping-realm/protocol/openid-connect/certs
       # The physical address the backend uses to talk to Keycloak
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       # Keycloack client info

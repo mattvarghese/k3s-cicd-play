@@ -26,7 +26,8 @@ export async function buildApp() {
     cache: true,
     rateLimit: true,
     jwksRequestsPerMinute: 5,
-    jwksUri: `${issuerUrl}/protocol/openid-connect/certs`
+    // This is the magic line that handles all 3 modes:
+    jwksUri: process.env.KEYCLOAK_JWKS_URL || `${issuerUrl}/protocol/openid-connect/certs`
   });
 
   // 1. JWT Configuration

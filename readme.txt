@@ -701,7 +701,7 @@ The "Client" is the configuration that allows your Frontend and Backend to talk 
     Click Next.
     Capability config:
         Ensure Standard flow is checked (this is for the browser login).
-        Toggle Client authentication to ON (this makes it a "Confidential" client, giving you a Secret for the Backend).
+        Leave Client authentication OFF
     Click Next.
 3. Configure Redirect URIs
 This is a security feature that prevents hackers from stealing your tokens.
@@ -709,13 +709,7 @@ This is a security feature that prevents hackers from stealing your tokens.
     Valid redirect URIs: http://localhost:3001/*
     Web origins: + (This allows CORS from your Root URL).
     Click Save.
-4. Get your Client Secret
-Your Backend needs this secret to verify tokens.
-    Go to the Credentials tab (visible now that the client is saved).
-    Copy the Client secret.
-    Action: Add this to your backend-service environment variables in docker-compose.yaml (or your .env file):
-        KEYCLOAK_CLIENT_SECRET: <YOUR_PASTED_SECRET>
-5. Create a Test User
+4. Create a Test User
 You can't log in with the admin user into your app; you need a "customer."
     On the left sidebar, click Users.
     Click Add user.
@@ -738,8 +732,6 @@ To make this persistent, we must export your current work
     Toggle "Include clients" and "Include users" to ON.
     Click Export and save it as shopping-realm.json.
 Move this shopping-realm.json file to a new path <root>/keycloak/import/
-Note that the client secret is masked out in the export. So search "shopping-app" to find the client
-and set its secret to the value we have
 Note that the tester user is not included in the export. So add this (just after roles and groups)
 "users": [
     {
@@ -798,7 +790,23 @@ Navigate to http://localhost:8080/realms/shopping-realm/account
 NOTE: Given we modified the backend-service in docker-compose, updated its tag to v4
 Haven't pushed it yet, as we may have more changes.
 
+[-- git commit "Keycloak configuration" --]
 
+Now that we have keycloak container sorted out, we need to update our backend.
+Inside the backend folder, do 
+    npm install @fastify/jwt
+    npm install jwks-rsa
+
+In backend/src/app.ts, add authenticate decorator
+  // 2. The Auth Guard (Decorator)
+  app.decorate("authenticate", async (request: any, reply: any) => {
+    ...
+  });
+Use it in the APIs 
+Update tests to work around not having authentication
+
+NOTE: realized that Gemini was intending SPA directly talking to Keycloak
+so client secret is not an option. Changed to public client, and removed secrets
 
 
 
