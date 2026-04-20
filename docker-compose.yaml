@@ -34,7 +34,6 @@ services:
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       # Keycloack client info
       KEYCLOAK_CLIENT_ID: shopping-app
-      KEYCLOAK_CLIENT_SECRET: y7onKGfk7XRQPzex6I3gOOa0JJxOWTTK
     depends_on:
       db:
         condition: service_healthy

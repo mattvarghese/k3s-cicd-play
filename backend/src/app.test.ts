@@ -11,7 +11,7 @@ describe('Shopping List API', () => {
   });
 
   it('GET /api/items should return a 200 status', async () => {
-    const response = await supertest(app.server).get('/api/items');
+    const response = await supertest(app.server).get('/api/items').set('x-test-auth', 'true');
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
   });
@@ -25,7 +25,7 @@ describe('Shopping List API', () => {
 
     const response = await supertest(app.server)
       .post('/api/items')
-      .send(newItem);
+      .send(newItem).set('x-test-auth', 'true');
 
     expect(response.status).toBe(201); // 201 = Created
     expect(response.body.item_name).toBe('Sourdough Bread');
@@ -35,19 +35,19 @@ describe('Shopping List API', () => {
   it('DELETE /api/items/:id should remove an item and return 200', async () => {
     // 1. Create an item first so we have a valid ID to delete
     const tempItem = {
-      username: 'testuser',
+      username: 'matt',
       item_name: 'Delete Me',
       quantity: 1
     };
     const postResponse = await supertest(app.server)
       .post('/api/items')
-      .send(tempItem);
+      .send(tempItem).set('x-test-auth', 'true');
 
     const targetId = postResponse.body.id;
 
     // 2. Delete the item
     const deleteResponse = await supertest(app.server)
-      .delete(`/api/items/${targetId}`);
+      .delete(`/api/items/${targetId}`).set('x-test-auth', 'true');
 
     expect(deleteResponse.status).toBe(200);
     expect(deleteResponse.body).toHaveProperty('message', 'Item deleted successfully');
@@ -59,10 +59,17 @@ describe('Shopping List API', () => {
     const nonExistentId = 999999;
 
     const response = await supertest(app.server)
-      .delete(`/api/items/${nonExistentId}`);
+      .delete(`/api/items/${nonExistentId}`).set('x-test-auth', 'true');
 
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty('error', 'Item not found');
+  });
+
+  it('GET /api/items should return 401 WITHOUT auth', async () => {
+    const response = await supertest(app.server).get('/api/items');
+
+    // This proves your security is actually working!
+    expect(response.status).toBe(401);
   });
 
   // ... inside describe ...

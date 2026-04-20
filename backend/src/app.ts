@@ -1,10 +1,69 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyPostgres from '@fastify/postgres';
+import fastifyJwt, { FastifyJWTOptions } from '@fastify/jwt';
+import jwksClient from 'jwks-rsa';
+
+// This is required so the { preHandler: [app.authenticate] } 
+// doesn't get a complaint that authenticate doesn't exist on app
+declare module 'fastify' {
+  interface FastifyInstance {
+    authenticate: (request: any, reply: any) => Promise<void>;
+  }
+}
 
 export async function buildApp() {
   const app = Fastify({
     logger: true     // Change to false if you don't want diagnostics
+  });
+
+  // A. JWT Configuration
+  // Define the variable at the top of buildApp
+  const issuerUrl = process.env.KEYCLOAK_ISSUER_URL || 'http://localhost:8080/realms/shopping-realm';
+
+  // Define the JWKS provider
+  const jwksProvider = jwksClient.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: `${issuerUrl}/protocol/openid-connect/certs`
+  });
+
+  // 1. JWT Configuration
+  // We cast the options to FastifyJWTOptions to force TS to recognize the fields
+  const jwtOptions: any = {
+    secret: process.env.NODE_ENV === 'test'
+      ? (process.env.JWT_SECRET || 'super-secret-fallback-for-tests')
+      : (jwksProvider as any),
+    // Move validation constraints here
+    verify: {
+      issuer: issuerUrl,
+      algorithms: process.env.NODE_ENV === 'test' ? ['HS256'] : ['RS256']
+    }
+  };
+
+  await app.register(fastifyJwt, jwtOptions);
+
+  // 2. The Auth Guard (Decorator)
+  app.decorate("authenticate", async (request: any, reply: any) => {
+    try {
+      // If we are in test mode and a special header is present, skip real JWT check
+      // This is the "Software Artist" secret door for TDD
+      if (process.env.NODE_ENV === 'test' && request.headers['x-test-auth'] === 'true') {
+        request.user = { sub: 'test-user-id', preferred_username: 'matt' };
+        return;
+      }
+
+      await request.jwtVerify();
+    } catch (err) {// Log the full error internally for your diagnostics
+      app.log.error(err);
+
+      // Send a clean, structured message to the frontend
+      reply.code(401).send({
+        error: 'Unauthorized',
+        message: err // Usually safe enough, e.g., "Authorization token expired"
+      });
+    }
   });
 
   // 1. Regular CORS registration
@@ -37,10 +96,17 @@ export async function buildApp() {
     connectionString: process.env.DATABASE_URL || 'postgres://user:password@localhost:5432/shopping_db'
   });
 
+  // B. Protected Routes
+  // Notice the 'preHandler' - this is the "bouncer" at the door
+
   // 3. The GET Route: Fetch all items
-  app.get('/api/items', async (request, reply) => {
+  app.get('/api/items', { preHandler: [app.authenticate] }, async (request, reply) => {
     try {
-      const { rows } = await app.pg.query('SELECT * FROM shopping_items');
+      const username = (request.user as any).preferred_username;
+      const { rows } = await app.pg.query(
+        'SELECT * FROM shopping_items WHERE username = $1',
+        [username]
+      );
       return rows;
     } catch (err) {
       reply.code(500).send({ error: 'Database connection failed' });
@@ -48,8 +114,10 @@ export async function buildApp() {
   });
 
   // 4. The POST Route: Create a new item
-  app.post('/api/items', async (request, reply) => {
-    const { username, item_name, quantity } = request.body as any;
+  app.post('/api/items', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { item_name, quantity } = request.body as any;
+
+    const username = (request.user as any).preferred_username;
 
     const query = `
       INSERT INTO shopping_items (username, item_name, quantity) 
@@ -67,13 +135,17 @@ export async function buildApp() {
   });
 
   // 5. The DELETE Route: Remove an item by ID
-  app.delete('/api/items/:id', async (request, reply) => {
+  app.delete('/api/items/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const query = 'DELETE FROM shopping_items WHERE id = $1 RETURNING id';
+    // Extract identity from the bouncer, not the user input
+    const username = (request.user as any).preferred_username;
+
+    // SCOPED QUERY: Only delete if BOTH the ID and the Username match
+    const query = 'DELETE FROM shopping_items WHERE id = $1 AND username = $2 RETURNING id';
 
     try {
-      const { rows } = await app.pg.query(query, [id]);
+      const { rows } = await app.pg.query(query, [id, username]);
 
       if (rows.length === 0) {
         return reply.code(404).send({ error: 'Item not found' });
