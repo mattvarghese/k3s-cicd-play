@@ -24,8 +24,8 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: DATABASE_URL
-              # We use the Service Name (shopping-db) and the Cluster DB Name (shopping_list)
-              value: "postgres://postgres:password@shopping-db:5432/shopping_list"
+              # We use the Service Name (shopping-db) and the Cluster DB Name (shopping_db)
+              value: "postgres://postgres:password@shopping-db:5432/shopping_db"
 ---
 apiVersion: v1
 kind: Service

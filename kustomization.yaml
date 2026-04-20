@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# --- Cross-Cutting Metadata ---
+namespace: k3s-cicd-play
+labels:
+  - pairs:
+      project: shopping-list
+
+# --- Resources ---
+# 1. List your existing manifest files
+resources:
+  - k8s/db-deploy.yaml
+  - k8s/backend-deploy.yaml
+  - k8s/frontend-deploy.yaml
+
+# --- Generators ---
+# 2. Tell Kustomize to generate the ConfigMap from your local file
+configMapGenerator:
+  - name: postgres-init-sql
+    files:
+      - init.sql=database/init.sql
+
+# 3. This prevents Kustomize from adding a random hash (like postgres-init-sql-f98hg2)
+# so your Deployment can always find it by its simple name.
+generatorOptions:
+  disableNameSuffixHash: true

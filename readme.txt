@@ -546,10 +546,15 @@ NOW we haave an app which allows us to add items, but not delete them
 =============================================================================
 
 To bring down the k3s deployment
+# Bring down the frontend (pods, deployment, and service)
+kubectl delete -f k8s/frontend-deploy.yaml -n k3s-cicd-play
 # Bring down the backend (pods, deployment, and service)
 kubectl delete -f k8s/backend-deploy.yaml -n k3s-cicd-play
 # Bring down the database (configmap, deployment, service, and PVC)
 kubectl delete -f k8s/db-deploy.yaml -n k3s-cicd-play
+
+Or alternatively, to bring down all
+kubectl delete -f k8s/ -n k3s-cicd-play
 
 =============================================================================
 Now, we'll add delete item capability
@@ -622,8 +627,28 @@ Updated codebase to do that as well
 Now we're all done - we won't bother with edit item, as you can delete and add
 =============================================================================
 
-To bring down the k3s deployment
-# Bring down the backend (pods, deployment, and service)
-kubectl delete -f k8s/backend-deploy.yaml -n k3s-cicd-play
-# Bring down the database (configmap, deployment, service, and PVC)
-kubectl delete -f k8s/db-deploy.yaml -n k3s-cicd-play
+
+Phase 2: switching to kubernetes using Kustomize and consolidating database init.sql etc
+
+Side note. We used shopping_db for local and docker, but shopping_list for k3s database name
+    $ grep -r "shopping_list" *
+    k8s/backend-deploy.yaml:              # We use the Service Name (shopping-db) and the Cluster DB Name (shopping_list)
+    k8s/backend-deploy.yaml:              value: "postgres://postgres:password@shopping-db:5432/shopping_list"
+    k8s/db-deploy.yaml:              value: "shopping_list"
+    readme.txt:$ psql -U postgres -d shopping_list
+    readme.txt:  select * from shopping_list; - note: sql can be multiline. ';' terminates
+Fix this, so everything is shopping_db throughout
+
+Then, remove the "Configure" section containing SQL from db-deploy.yaml
+
+Then add a kustomization.yaml at the root folder
+K3s can be run in two ways 
+    kubectl apply -f k8s/ -n k3s-cicd-play
+    This runs individual deployment yaml files from k8s folder
+OR
+    kubectl apply -k .
+    This runs the root kustomization.yaml - note that this specifies namespace and resources
+
+And in the kustomize framework, you can bring down the k3s deployment with
+    kubectl delete -k .
+
