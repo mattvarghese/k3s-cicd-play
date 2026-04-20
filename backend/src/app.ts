@@ -32,14 +32,27 @@ export async function buildApp() {
 
   // 1. JWT Configuration
   // We cast the options to FastifyJWTOptions to force TS to recognize the fields
+  // 1.1. Define the JWKS Client
+  const client = jwksClient({
+    jwksUri: process.env.KEYCLOAK_JWKS_URL || `${issuerUrl}/protocol/openid-connect/certs`,
+    cache: true,
+    rateLimit: true
+  });
+
+  // 1.2. Create a helper to fetch the key manually
+  const getKey = async (header: any) => {
+    const key = await client.getSigningKey(header.kid);
+    return key.getPublicKey();
+  };
+
+  // 1.3. Register the plugin with the manual getter
   const jwtOptions: any = {
     secret: process.env.NODE_ENV === 'test'
-      ? (process.env.JWT_SECRET || 'super-secret-fallback-for-tests')
-      : (jwksProvider as any),
-    // Move validation constraints here
+      ? (process.env.JWT_SECRET || 'test-secret')
+      : getKey, // Pass the function directly
     verify: {
       issuer: issuerUrl,
-      algorithms: process.env.NODE_ENV === 'test' ? ['HS256'] : ['RS256']
+      algorithms: ['RS256']
     }
   };
 
