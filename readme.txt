@@ -682,8 +682,126 @@ At this point we can run
 Navigate to http://localhost:8080/health/ready to check health
 Navigate to http://localhost:8080/ and log in as admin/admin to configure
 
+NOTE: Keycloak takes about 40seconds to boot
+
 [-- git commit "Keycloak added to docker-compose.yaml" --]
 
+Within the keycloak command center (localhost:8080 admin/admin)
+1. Create the Realm
+A Realm is an isolated silo for your users and applications.
+    In the top-left corner, click the dropdown that says Master and click Create Realm.
+    Realm name: shopping-realm (matches your KEYCLOAK_ISSUER_URL).
+    Click Create.
+2. Create the Client (for your App)
+The "Client" is the configuration that allows your Frontend and Backend to talk to Keycloak.
+    On the left sidebar, click Clients.
+    Click Create client.
+    Client type: OpenID Connect.
+    Client ID: shopping-app.
+    Click Next.
+    Capability config:
+        Ensure Standard flow is checked (this is for the browser login).
+        Toggle Client authentication to ON (this makes it a "Confidential" client, giving you a Secret for the Backend).
+    Click Next.
+3. Configure Redirect URIs
+This is a security feature that prevents hackers from stealing your tokens.
+    Root URL: http://localhost:3001 (Your Frontend).
+    Valid redirect URIs: http://localhost:3001/*
+    Web origins: + (This allows CORS from your Root URL).
+    Click Save.
+4. Get your Client Secret
+Your Backend needs this secret to verify tokens.
+    Go to the Credentials tab (visible now that the client is saved).
+    Copy the Client secret.
+    Action: Add this to your backend-service environment variables in docker-compose.yaml (or your .env file):
+        KEYCLOAK_CLIENT_SECRET: <YOUR_PASTED_SECRET>
+5. Create a Test User
+You can't log in with the admin user into your app; you need a "customer."
+    On the left sidebar, click Users.
+    Click Add user.
+    Username: tester.
+    Click Create.
+    Go to the Credentials tab within the User view.
+    Click Set password.
+        Password: password123
+        Temporary: OFF (So you don't have to change it on first login).
+    Click Save.
+
+If you want to verify everything is working before we touch the code, open a new browser tab and visit:
+http://localhost:8080/realms/shopping-realm/.well-known/openid-configuration
+If you see a wall of JSON, your realm is live and correctly serving its metadata.
+
+Now, this config would go away when we do docker compose down. 
+To make this persistent, we must export your current work
+    In Keycloak UI, go to Realm Settings (top right Action menu).
+    Click Partial Export.
+    Toggle "Include clients" and "Include users" to ON.
+    Click Export and save it as shopping-realm.json.
+Move this shopping-realm.json file to a new path <root>/keycloak/import/
+Note that the client secret is masked out in the export. So search "shopping-app" to find the client
+and set its secret to the value we have
+Note that the tester user is not included in the export. So add this (just after roles and groups)
+"users": [
+    {
+      "username": "tester",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-shopping-realm"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "view-users"
+        ]
+      }
+    }
+  ],
+  # For a real production deployment, you wouldn't do this
+  
+Now update your docker-compose.yaml keycloak section with these two changes
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --import-realm # <--- Added this flag
+    environment:
+      # ... your existing env vars ...
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import # <--- Added this volume
+    # ... healthchecks ...
+
+Now, do 
+  docker compose down -v
+  docker compose up -d --build
+
+log into http://localhost:8080 and verify that
+  our realm exists
+  our user exists
+  our client exists and has the right secret
+look at
+  docker compose logs keycloak
+look for
+    KC-SERVICES0050: Initializing master realm
+    KC-SERVICES0030: Imported realm shopping-realm from file /opt/keycloak/data/import/shopping-realm.json
+    KC-SERVICES0009: Added user 'admin' to realm 'master'
+
+Navigate to http://localhost:8080/realms/shopping-realm/account
+   Login as tester/password123
+
+NOTE: Given we modified the backend-service in docker-compose, updated its tag to v4
+Haven't pushed it yet, as we may have more changes.
 
 
 
+
+
+
+
+  

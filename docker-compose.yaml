@@ -20,7 +20,7 @@ services:
 
   backend-service:
     # Adding the specific tag here
-    image: mattvarghesedocker/k3s-cicd-play-backend:v3
+    image: mattvarghesedocker/k3s-cicd-play-backend:v4
     build: ./backend
     restart: always
     ports:
@@ -32,6 +32,9 @@ services:
       KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/shopping-realm
       # The physical address the backend uses to talk to Keycloak
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      # Keycloack client info
+      KEYCLOAK_CLIENT_ID: shopping-app
+      KEYCLOAK_CLIENT_SECRET: y7onKGfk7XRQPzex6I3gOOa0JJxOWTTK
     depends_on:
       db:
         condition: service_healthy
@@ -50,7 +53,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 8080
@@ -64,6 +67,8 @@ services:
       KC_HEALTH_ENABLED: "true"
     ports:
       - "8080:8080"
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import  # This brings in the shopping-realm.json file
     healthcheck:
       # This checks if the port 8080 is accepting connections
       test: ["CMD-SHELL", "cat < /dev/null > /dev/tcp/127.0.0.1/8080"]
