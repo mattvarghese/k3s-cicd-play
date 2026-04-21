@@ -416,11 +416,6 @@ Delete src/App.css
 Change src/index.css to just be
     @import "tailwindcss";
 
-Create frontend/.evn with content
-    # Explicitly targeting the API gateway of your Fastify server
-    # For npm run dev, not for k3s
-    VITE_API_URL=http://localhost:3000/api
-
 Change src/frontend/App.tsx to code to show and add items (no delete yet)
 
 You can also delete 
@@ -684,7 +679,7 @@ Navigate to http://localhost:8080/ and log in as admin/admin to configure
 
 NOTE: Keycloak takes about 40seconds to boot
 
-[-- git commit "Keycloak added to docker-compose.yaml" --]
+[-- git commit -m "Keycloak added to docker-compose.yaml" --]
 
 Within the keycloak command center (localhost:8080 admin/admin)
 1. Create the Realm
@@ -706,7 +701,7 @@ The "Client" is the configuration that allows your Frontend and Backend to talk 
 3. Configure Redirect URIs
 This is a security feature that prevents hackers from stealing your tokens.
     Root URL: http://localhost:3001 (Your Frontend).
-    Valid redirect URIs: http://localhost:3001/*
+    Valid redirect URIs: http://localhost:3001/* and http://localhost:30001/*
     Web origins: + (This allows CORS from your Root URL).
     Click Save.
 4. Create a Test User
@@ -720,6 +715,9 @@ You can't log in with the admin user into your app; you need a "customer."
         Password: password123
         Temporary: OFF (So you don't have to change it on first login).
     Click Save.
+5. Allow user registration
+    Go to realm settings for realm shopping-realm
+    Go to Login tab, and toggle user registration to true / on
 
 If you want to verify everything is working before we touch the code, open a new browser tab and visit:
 http://localhost:8080/realms/shopping-realm/.well-known/openid-configuration
@@ -790,7 +788,7 @@ Navigate to http://localhost:8080/realms/shopping-realm/account
 NOTE: Given we modified the backend-service in docker-compose, updated its tag to v4
 Haven't pushed it yet, as we may have more changes.
 
-[-- git commit "Keycloak configuration" --]
+[-- git commit -m "Keycloak configuration" --]
 
 Now that we have keycloak container sorted out, we need to update our backend.
 Inside the backend folder, do 
@@ -809,7 +807,72 @@ NOTE: realized that Gemini was intending SPA directly talking to Keycloak
 so client secret is not an option. Changed to public client, and removed secrets
 
 
+[-- git commit -m "Backednd wrap up" --]
 
 
+For frontend, do this in the frontend folder
+    npm install keycloak-js
+Then add the files
+    backend/.env
+    frontend/public/silent-check-sso.html
+    frontend/src/components/UserStatus.tsx
+    frontend/src/context/AuthContext.tsx
+    frontend/hooks/useApi.ts
+    Update App.tsx and main.tsx
+
+Now to run from npm
+    docker compose up -d db keycloak
+Then in both backend/ and frontend/ folders
+    npm run dev
+You can login as tester/password123, or create new user
+
+To run all from docker
+    Bring down the npm and docker runs
+    then do
+    docker compose up -d --build
+You can again login as tester/passwor123, or create new user
+    If you didn't bring down with -v, your previous changes will persist
+
+
+[-- git commit -m "Frontend working on npm+db+keycloak and docker-all" --]
+
+
+To run in k3s, add the k8s/keycloak-deploy.yaml file and plug it into kustomization.yaml
+Then, we updated docker-compose.yaml to have v4 for backend and v3 for frontend
+(Updated to v4 and v5, as kubectl won't pull if it already pulled)
+But we didn't push these. Push them now
+    docker build -t mattvarghesedocker/k3s-cicd-play-frontend:v4 ./frontend
+    docker push mattvarghesedocker/k3s-cicd-play-frontend:v4
+
+    docker build -t mattvarghesedocker/k3s-cicd-play-backend:v5 ./backend
+    docker push mattvarghesedocker/k3s-cicd-play-backend:v5
+
+Update k8s/frontend-deploy.yaml to use frontend:v4
+Update k8s/backend-deploy.yaml to use backend:v5
+
+Then, 
+    kubectl apply -k .
+To monitor the keycloak deployment for errors:
+    kubectl logs -f deployment/keycloak -n k3s-cicd-play
+The above will say 
+    2026-04-20 22:26:25,750 INFO  [org.keycloak.services.resources.KeycloakApplication] (pool-6-thread-1) Bootstrap completed in 31.061000 seconds
+When the keycloak container is live
+
+To look at backend logs:
+    # -l app=shopping-backend: Targets all pods with that label
+    # -f: "Follow" (streams logs in real-time)
+    # --prefix: Shows you which pod the log came from (crucial with replicas)
+    kubectl logs -n k3s-cicd-play -l app=shopping-backend -f --prefix
+    
+To bring down
+    kubectl delete -k .
+
+At this point, everything works in all modes: 
+1. db,keycloak on docker; frontend,backend on npm run dev:: localhost:3001
+2. docker compose up -d --build (everything on docker):: localhost:3001
+3. kubectl apply -k . (everything on k3s):: localhost:30001
+
+
+[-- git commit -m "Everything works in npm run dev, docker, and k3s" --]
 
   
