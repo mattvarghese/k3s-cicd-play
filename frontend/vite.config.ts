@@ -9,5 +9,11 @@ export default defineConfig({
   ],
   server: {
     port: 3000, // Keep it consistent for your CORS settings
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000', // Points to your K3s NodePort
+        changeOrigin: true,
+      }
+    }
   }
 })

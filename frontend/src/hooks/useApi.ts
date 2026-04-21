@@ -5,7 +5,7 @@ export const useApi = () => {
     const { token } = useAuth();
 
     // This uses the Vite environment variable, falling back to /api for production/Docker
-    const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const BASE_URL = '/api';
 
     const callApi = async (endpoint: string, options: RequestInit = {}) => {
         // 1. Prepare headers

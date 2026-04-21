@@ -17,7 +17,7 @@ spec:
         - name: dockerhub-key
       containers:
         - name: backend
-          image: mattvarghesedocker/k3s-cicd-play-backend:v3   # was v1, changed to v2, then v3 for delete API
+          image: mattvarghesedocker/k3s-cicd-play-backend:v5   # was v1, changed to v2, then v3 for delete API, v4 keycloak
           ports:
             - containerPort: 3000
           env:
@@ -26,6 +26,10 @@ spec:
             - name: DATABASE_URL
               # We use the Service Name (shopping-db) and the Cluster DB Name (shopping_db)
               value: "postgres://postgres:password@shopping-db:5432/shopping_db"
+            - name: KEYCLOAK_ISSUER_URL
+              value: "http://localhost:8080/realms/shopping-realm"
+            - name: KEYCLOAK_JWKS_URL
+              value: "http://keycloak:8080/realms/shopping-realm/protocol/openid-connect/certs"
 ---
 apiVersion: v1
 kind: Service

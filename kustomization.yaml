@@ -13,6 +13,7 @@ resources:
   - k8s/db-deploy.yaml
   - k8s/backend-deploy.yaml
   - k8s/frontend-deploy.yaml
+  - k8s/keycloak-deploy.yaml
 
 # --- Generators ---
 # 2. Tell Kustomize to generate the ConfigMap from your local file
@@ -20,6 +21,9 @@ configMapGenerator:
   - name: postgres-init-sql
     files:
       - init.sql=database/init.sql
+  - name: keycloak-realm-import
+    files:
+      - shopping-realm-realm.json=keycloak/import/shopping-realm.json
 
 # 3. This prevents Kustomize from adding a random hash (like postgres-init-sql-f98hg2)
 # so your Deployment can always find it by its simple name.

@@ -17,7 +17,7 @@ spec:
         - name: dockerhub-key
       containers:
         - name: frontend
-          image: mattvarghesedocker/k3s-cicd-play-frontend:v2   # v1 doesn't have DELETE support
+          image: mattvarghesedocker/k3s-cicd-play-frontend:v4   # v1 doesn't have DELETE support, v3 adds keycloak
           ports:
             - containerPort: 80 # Nginx listens here
 ---

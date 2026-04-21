@@ -798,7 +798,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://localhost:3001/*"
+        "http://localhost:3001/*",
+        "http://localhost:30001/*"
       ],
       "webOrigins": [
         "*"
@@ -815,7 +816,7 @@
       "protocol": "openid-connect",
       "attributes": {
         "oidc.ciba.grant.enabled": "false",
-        "post.logout.redirect.uris": "http://localhost:3001/*",
+        "post.logout.redirect.uris": "http://localhost:3001/*##http://localhost:30001/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.session.required": "true",
         "backchannel.logout.revoke.offline.tokens": "false"
