@@ -31,7 +31,7 @@ graph TD
 ```
 
 ### Phase 2: IAM Integration (Enterprise Security)
-Integration of Keycloak as a commodity IAM solution to handle authentication without reinventing the wheel.
+Integration of [Keycloak](https://www.keycloak.org/) as a commodity IAM solution to handle authentication without reinventing the wheel.
 * **Security**: JWT verification using RS256 asymmetric keys.
 * **Persistence**: Multi-database setup within Postgres (shopping_db and keycloak_db).
 * **Auth Flow**: Frontend performs OIDC login; Backend validates tokens via JWKS.
