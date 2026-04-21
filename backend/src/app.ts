@@ -46,13 +46,16 @@ export async function buildApp() {
   };
 
   // 1.3. Register the plugin with the manual getter
+  const isTest = process.env.NODE_ENV === 'test';
+
   const jwtOptions: any = {
-    secret: process.env.NODE_ENV === 'test'
+    secret: isTest
       ? (process.env.JWT_SECRET || 'test-secret')
-      : getKey, // Pass the function directly
+      : getKey,
     verify: {
       issuer: issuerUrl,
-      algorithms: ['RS256']
+      // FIX: Use HS256 for tests (symmetric) and RS256 for production (asymmetric)
+      algorithms: isTest ? ['HS256'] : ['RS256']
     }
   };
 

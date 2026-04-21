@@ -839,13 +839,13 @@ You can again login as tester/passwor123, or create new user
 
 To run in k3s, add the k8s/keycloak-deploy.yaml file and plug it into kustomization.yaml
 Then, we updated docker-compose.yaml to have v4 for backend and v3 for frontend
-(Updated to v4 and v5, as kubectl won't pull if it already pulled)
+(Updated to v4 and v6, as kubectl won't pull if it already pulled)
 But we didn't push these. Push them now
     docker build -t mattvarghesedocker/k3s-cicd-play-frontend:v4 ./frontend
     docker push mattvarghesedocker/k3s-cicd-play-frontend:v4
 
-    docker build -t mattvarghesedocker/k3s-cicd-play-backend:v5 ./backend
-    docker push mattvarghesedocker/k3s-cicd-play-backend:v5
+    docker build -t mattvarghesedocker/k3s-cicd-play-backend:v6 ./backend
+    docker push mattvarghesedocker/k3s-cicd-play-backend:v6
 
 Update k8s/frontend-deploy.yaml to use frontend:v4
 Update k8s/backend-deploy.yaml to use backend:v5

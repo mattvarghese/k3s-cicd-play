@@ -20,7 +20,7 @@ services:
 
   backend-service:
     # Adding the specific tag here
-    image: mattvarghesedocker/k3s-cicd-play-backend:v5
+    image: mattvarghesedocker/k3s-cicd-play-backend:v6
     build: ./backend
     restart: always
     ports:
