@@ -2,7 +2,7 @@
 
 A comprehensive playground for exploring full-stack systems architecture, container orchestration, and Identity and Access Management (IAM). This project demonstrates the evolution of a production-grade application from local development to a fully orchestrated K3s environment.
 > [!NOTE]
-> For legacy step-by-step notes and the original project log, please refer to the [readme.txt](./readme.txt) file in the root directory.
+> For step-by-step instructions and my original project log, please refer to the [readme.txt](./readme.txt) file in the root directory.
 
 ## 🏗 Project Phases
 
