@@ -875,34 +875,4 @@ At this point, everything works in all modes:
 
 [-- git commit -m "Everything works in npm run dev, docker, and k3s" --]
 
-
-
-=============================================================================
-Phase 4: Hierarchical Monitoring with K10s GUI
-=============================================================================
-# K10s (pronounced K-tens) provides a live visual hierarchy of the cluster.
-# We deploy it in its own namespace to maintain isolation.
-
-# 1. Create the namespace manually first
-    kubectl create namespace k10s-gui
-
-# 2. Create required Auth Secrets (EliasDeHondt standard)
-    # Note: Replace admin/admin with your own if desired
-    kubectl create secret generic k10s-secret-user -n k10s-gui \
-      --from-literal=USERNAME=admin \
-      --from-literal=PASSWORD=admin
-      
-    kubectl create secret generic k10s-secret-jwt -n k10s-gui \
-      --from-literal=JWT_SECRET=$(openssl rand -base64 32)
-
-# 3. Add k10s/ resources to the root kustomization.yaml
-#    - k10s/namespace.yaml
-#    - k10s/k10s-infra.yaml
-#    - k10s/k10s-deploy.yaml
-
-# 4. Deploy the entire stack (App + Monitor)
-    kubectl apply -k .
-
-# 5. Access the Hierarchical Dashboard
-    # Browser: http://localhost:30002
-    # Login with the credentials from Step 2
+  
