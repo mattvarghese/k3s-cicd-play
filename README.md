@@ -88,3 +88,37 @@ graph LR
 * **JWKS Integration**: The backend dynamically fetches public keys from Keycloak to verify tokens, ensuring zero-trust communication.
 * **High Availability**: Ready for replica scaling in K3s deployment manifests.
 * **TDD Ready**: Includes a "Software Artist" secret door for local testing using `x-test-auth` headers to bypass live IAM during development.
+
+### Phase 4: Cluster-wide Hierarchical Observability
+Integration of **K10s** (pronounced K-tens) as a visual management layer to map out the complex relationships between superclusters, pools, and pods.
+
+* **Isolation**: Deployed in a dedicated `k10s-gui` namespace to prevent resource bleed.
+* **Security**: Authenticated access via custom JWT secrets.
+* **Visibility**: Uses a `ClusterRole` to provide a single-pane-of-glass view across all namespaces (App, System, and Default).
+
+```mermaid
+graph TD
+    subgraph K10s_Observability_Layer
+        KFE[K10s Frontend]
+        KBE[K10s Backend]
+        KFE --> KBE
+    end
+
+    subgraph Cluster_Resources
+        NS1[k3s-cicd-play Namespace]
+        NS2[default Namespace]
+        NS3[kube-system Namespace]
+    end
+
+    KBE -- Watch/List API --> NS1
+    KBE -- Watch/List API --> NS2
+    KBE -- Watch/List API --> NS3
+```
+
+## 📊 Management & Monitoring
+Beyond the raw application, this project includes a suite of tools for cluster health and visualization:
+
+* **K10s**: A hierarchical GUI for mapping structural relationships.
+    * *Access*: `http://localhost:30003`
+* **Freelens**: A desktop-based "Kubernetes IDE" for deep workload inspection.
+* **Prometheus Operator**: Installed via Helm for real-time metrics and alerting.
